@@ -38,9 +38,11 @@ Unit tests: JUnit 5 + Mockito. Integration tests: Testcontainers (MySQL, Kafka).
 ## Status
 
 - [x] Project scaffold, Docker Compose stack, Flyway V1 schema — boot-verified against live MySQL
-- [ ] Daraja OAuth token client
-- [ ] STK Push initiation endpoint
-- [ ] Idempotent callback processing + audit
+- [x] Daraja OAuth token client (cached, auto-refresh, thread-safe) — 4 unit tests
+- [x] STK Push initiation endpoint — **verified live against the Daraja sandbox** (HTTP 202, real `CheckoutRequestID`)
+- [x] Idempotent callback processing + audit — **verified with Daraja's real callback** delivered via tunnel (PENDING → FAILED/1037 for the test MSISDN), and a replayed callback rejected as `DUPLICATE` without state corruption
+- [x] 15 tests green (JUnit 5, Mockito, MockRestServiceServer, `@WebMvcTest`)
 - [ ] Kafka payment events (outbox pattern)
 - [ ] JWT-secured endpoints, OpenAPI docs
+- [ ] Testcontainers integration tests
 - [ ] CI/CD (GitHub Actions), k3d/Kubernetes deploy, AWS

@@ -34,3 +34,7 @@ build/
 
 ### Local env ###
 .env
+.daraja-session.json
+
+### Browser automation artifacts ###
+.playwright-cli/
