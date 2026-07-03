@@ -38,3 +38,6 @@ build/
 
 ### Browser automation artifacts ###
 .playwright-cli/
+
+### K8s local secrets ###
+k8s/secrets.yaml

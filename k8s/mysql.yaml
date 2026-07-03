@@ -1,0 +1,70 @@
+# Single-replica MySQL for local/demo clusters. Production would use a managed
+# database (e.g. RDS) or an operator-managed StatefulSet.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: daraja
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.4
+          env:
+            - name: MYSQL_DATABASE
+              value: daraja
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef: {name: daraja-secrets, key: mysql-user}
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: daraja-secrets, key: mysql-password}
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: daraja-secrets, key: mysql-root-password}
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h localhost -u$MYSQL_USER -p$MYSQL_PASSWORD"]
+            initialDelaySeconds: 15
+            periodSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mysql-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-data
+  namespace: daraja
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: daraja
+spec:
+  selector:
+    app: mysql
+  ports:
+    - port: 3306

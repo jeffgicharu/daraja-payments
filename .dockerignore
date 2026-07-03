@@ -1,0 +1,6 @@
+target/
+.git/
+.env
+.playwright-cli/
+*.md
+k8s/
