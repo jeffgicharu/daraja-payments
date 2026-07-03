@@ -19,7 +19,12 @@ spring:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
 
 daraja:
   base-url: ${DARAJA_BASE_URL:https://sandbox.safaricom.co.ke}
@@ -28,6 +33,16 @@ daraja:
   shortcode: ${DARAJA_SHORTCODE:174379}
   passkey: ${DARAJA_PASSKEY:}
   callback-base-url: ${DARAJA_CALLBACK_BASE_URL:}
+
+api:
+  # HS256 requires >= 32 bytes; override in any non-local environment
+  jwt-secret: ${API_JWT_SECRET:dev-only-jwt-secret-0123456789abcdef-change-me}
+  client-id: ${API_CLIENT_ID:demo-client}
+  client-secret: ${API_CLIENT_SECRET:demo-secret}
+  token-ttl-seconds: ${API_TOKEN_TTL_SECONDS:3600}
+
+outbox:
+  relay-interval-ms: ${OUTBOX_RELAY_INTERVAL_MS:2000}
 
 management:
   endpoints:

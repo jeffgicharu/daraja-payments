@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,6 +14,8 @@ import com.jeffgicharu.daraja.daraja.dto.StkCallback;
 import com.jeffgicharu.daraja.daraja.dto.StkPushResponse;
 import com.jeffgicharu.daraja.domain.PaymentStatus;
 import com.jeffgicharu.daraja.domain.PaymentTransaction;
+import com.jeffgicharu.daraja.events.OutboxWriter;
+import com.jeffgicharu.daraja.events.PaymentEvent;
 import com.jeffgicharu.daraja.repository.CallbackAuditLogRepository;
 import com.jeffgicharu.daraja.repository.PaymentTransactionRepository;
 import java.math.BigDecimal;
@@ -35,13 +38,15 @@ class PaymentServiceTest {
     private PaymentTransactionRepository transactionRepository;
     @Mock
     private CallbackAuditLogRepository auditLogRepository;
+    @Mock
+    private OutboxWriter outboxWriter;
 
     private PaymentService paymentService;
 
     @BeforeEach
     void setUp() {
         paymentService = new PaymentService(
-                darajaClient, transactionRepository, auditLogRepository, new ObjectMapper());
+                darajaClient, transactionRepository, auditLogRepository, new ObjectMapper(), outboxWriter);
     }
 
     @Test
@@ -56,6 +61,7 @@ class PaymentServiceTest {
         assertThat(result.getStatus()).isEqualTo(PaymentStatus.PENDING);
         assertThat(result.getCheckoutRequestId()).isEqualTo("c-1");
         verify(transactionRepository).save(any(PaymentTransaction.class));
+        verify(outboxWriter).write(eq(PaymentEvent.TYPE_INITIATED), any(PaymentTransaction.class));
     }
 
     @Test
@@ -81,6 +87,7 @@ class PaymentServiceTest {
         assertThat(pending.getMpesaReceipt()).isEqualTo("NLJ7RT61SV");
         verify(transactionRepository).save(pending);
         verify(auditLogRepository).save(any());
+        verify(outboxWriter).write(PaymentEvent.TYPE_COMPLETED, pending);
     }
 
     @Test
@@ -110,6 +117,7 @@ class PaymentServiceTest {
         assertThat(alreadyCompleted.getStatus()).isEqualTo(PaymentStatus.COMPLETED);
         assertThat(alreadyCompleted.getMpesaReceipt()).isEqualTo("RECEIPT1");
         verify(transactionRepository, never()).save(any());
+        verify(outboxWriter, never()).write(anyString(), any());
         // ...but the duplicate is still audited.
         ArgumentCaptor<com.jeffgicharu.daraja.domain.CallbackAuditLog> captor =
                 ArgumentCaptor.forClass(com.jeffgicharu.daraja.domain.CallbackAuditLog.class);

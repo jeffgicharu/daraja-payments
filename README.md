@@ -41,8 +41,9 @@ Unit tests: JUnit 5 + Mockito. Integration tests: Testcontainers (MySQL, Kafka).
 - [x] Daraja OAuth token client (cached, auto-refresh, thread-safe) — 4 unit tests
 - [x] STK Push initiation endpoint — **verified live against the Daraja sandbox** (HTTP 202, real `CheckoutRequestID`)
 - [x] Idempotent callback processing + audit — **verified with Daraja's real callback** delivered via tunnel (PENDING → FAILED/1037 for the test MSISDN), and a replayed callback rejected as `DUPLICATE` without state corruption
-- [x] 15 tests green (JUnit 5, Mockito, MockRestServiceServer, `@WebMvcTest`)
-- [ ] Kafka payment events (outbox pattern)
-- [ ] JWT-secured endpoints, OpenAPI docs
-- [ ] Testcontainers integration tests
+- [x] Kafka payment events via **transactional outbox** — events written in the same DB transaction as the state change, published by a scheduled relay (at-least-once, ordered per aggregate), consumed by a notifications consumer. **Live-verified**: real Daraja callback produced `payment.initiated` + `payment.failed` on the `payments.events` topic.
+- [x] **JWT security** (HS256 resource server + client-credentials token endpoint). Callback webhook and health probes public; everything else requires a Bearer token — verified live (401 without, 202 with).
+- [x] **Testcontainers integration test** — real MySQL + Kafka containers, WireMock as Daraja: token → authenticated STK push → callback → COMPLETED → Kafka events consumed and asserted.
+- [x] **23 tests green** (JUnit 5, Mockito, MockRestServiceServer, `@WebMvcTest`, Testcontainers, Awaitility, WireMock)
+- [ ] OpenAPI docs
 - [ ] CI/CD (GitHub Actions), k3d/Kubernetes deploy, AWS

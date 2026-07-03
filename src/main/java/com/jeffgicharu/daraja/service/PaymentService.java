@@ -7,6 +7,8 @@ import com.jeffgicharu.daraja.daraja.dto.StkCallback;
 import com.jeffgicharu.daraja.daraja.dto.StkPushResponse;
 import com.jeffgicharu.daraja.domain.CallbackAuditLog;
 import com.jeffgicharu.daraja.domain.PaymentTransaction;
+import com.jeffgicharu.daraja.events.OutboxWriter;
+import com.jeffgicharu.daraja.events.PaymentEvent;
 import com.jeffgicharu.daraja.repository.CallbackAuditLogRepository;
 import com.jeffgicharu.daraja.repository.PaymentTransactionRepository;
 import java.math.BigDecimal;
@@ -26,13 +28,16 @@ public class PaymentService {
     private final PaymentTransactionRepository transactionRepository;
     private final CallbackAuditLogRepository auditLogRepository;
     private final ObjectMapper objectMapper;
+    private final OutboxWriter outboxWriter;
 
     public PaymentService(DarajaClient darajaClient, PaymentTransactionRepository transactionRepository,
-                          CallbackAuditLogRepository auditLogRepository, ObjectMapper objectMapper) {
+                          CallbackAuditLogRepository auditLogRepository, ObjectMapper objectMapper,
+                          OutboxWriter outboxWriter) {
         this.darajaClient = darajaClient;
         this.transactionRepository = transactionRepository;
         this.auditLogRepository = auditLogRepository;
         this.objectMapper = objectMapper;
+        this.outboxWriter = outboxWriter;
     }
 
     /** Initiate an STK push and persist a PENDING transaction keyed by CheckoutRequestID. */
@@ -50,7 +55,9 @@ public class PaymentService {
         PaymentTransaction transaction = new PaymentTransaction(
                 response.checkoutRequestId(), response.merchantRequestId(),
                 phoneNumber, amount, accountReference);
-        return transactionRepository.save(transaction);
+        PaymentTransaction saved = transactionRepository.save(transaction);
+        outboxWriter.write(PaymentEvent.TYPE_INITIATED, saved);
+        return saved;
     }
 
     /**
@@ -87,6 +94,9 @@ public class PaymentService {
             transaction.markFailed(body.resultCode(), body.resultDesc());
         }
         transactionRepository.save(transaction);
+        outboxWriter.write(body.resultCode() == 0
+                ? PaymentEvent.TYPE_COMPLETED
+                : PaymentEvent.TYPE_FAILED, transaction);
     }
 
     private String determineProcessingStatus(StkCallback.Callback body, Optional<PaymentTransaction> existing) {

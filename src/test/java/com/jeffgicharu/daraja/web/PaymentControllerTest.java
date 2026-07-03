@@ -4,17 +4,20 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jeffgicharu.daraja.config.AppConfig;
+import com.jeffgicharu.daraja.config.ApiSecurityProperties;
 import com.jeffgicharu.daraja.config.SecurityConfig;
 import com.jeffgicharu.daraja.domain.PaymentTransaction;
 import com.jeffgicharu.daraja.service.PaymentService;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -22,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(PaymentController.class)
 @Import({AppConfig.class, SecurityConfig.class})
+@EnableConfigurationProperties(ApiSecurityProperties.class)
 class PaymentControllerTest {
 
     @Autowired
@@ -37,6 +41,7 @@ class PaymentControllerTest {
         when(paymentService.initiatePayment(eq("254712345678"), any(), eq("ORDER-1"))).thenReturn(tx);
 
         mockMvc.perform(post("/api/v1/payments")
+                        .with(jwt())
                         .contentType("application/json")
                         .content("""
                                 {"phoneNumber":"254712345678","amount":100,"accountReference":"ORDER-1"}
@@ -47,8 +52,19 @@ class PaymentControllerTest {
     }
 
     @Test
+    void initiateWithoutTokenIsRejected401() throws Exception {
+        mockMvc.perform(post("/api/v1/payments")
+                        .contentType("application/json")
+                        .content("""
+                                {"phoneNumber":"254712345678","amount":100,"accountReference":"ORDER-1"}
+                                """))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void initiateRejectsInvalidPhoneNumberWith400() throws Exception {
         mockMvc.perform(post("/api/v1/payments")
+                        .with(jwt())
                         .contentType("application/json")
                         .content("""
                                 {"phoneNumber":"0712345678","amount":100,"accountReference":"ORDER-1"}
@@ -57,7 +73,7 @@ class PaymentControllerTest {
     }
 
     @Test
-    void callbackAlwaysAcknowledgesWith200() throws Exception {
+    void callbackIsPublicAndAlwaysAcknowledgesWith200() throws Exception {
         mockMvc.perform(post("/api/v1/payments/callback")
                         .contentType("application/json")
                         .content("""
