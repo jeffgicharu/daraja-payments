@@ -1,5 +1,8 @@
 # daraja-payments
 
+[![CI](https://github.com/jeffgicharu/daraja-payments/actions/workflows/ci.yml/badge.svg)](https://github.com/jeffgicharu/daraja-payments/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A production-grade M-Pesa payments microservice built with **Java 17 / Spring Boot 4**, integrating the [Safaricom Daraja API](https://developer.safaricom.co.ke) (sandbox) for Lipa na M-Pesa Online (STK Push).
 
 ## Architecture
