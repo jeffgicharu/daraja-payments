@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: daraja-payments
+
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:daraja}
+    username: ${MYSQL_USER:daraja}
+    password: ${MYSQL_PASSWORD:daraja}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+daraja:
+  base-url: ${DARAJA_BASE_URL:https://sandbox.safaricom.co.ke}
+  consumer-key: ${DARAJA_CONSUMER_KEY:}
+  consumer-secret: ${DARAJA_CONSUMER_SECRET:}
+  shortcode: ${DARAJA_SHORTCODE:174379}
+  passkey: ${DARAJA_PASSKEY:}
+  callback-base-url: ${DARAJA_CALLBACK_BASE_URL:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
