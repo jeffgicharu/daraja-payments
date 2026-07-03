@@ -1,0 +1,59 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: daraja
+      MYSQL_USER: daraja
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-udaraja", "-p${MYSQL_PASSWORD}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    deploy:
+      resources:
+        limits: {memory: 600M}
+
+  kafka:
+    image: apache/kafka:3.9.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_HEAP_OPTS: "-Xmx256m -Xms128m"
+    deploy:
+      resources:
+        limits: {memory: 500M}
+
+  app:
+    image: 031673482976.dkr.ecr.us-east-1.amazonaws.com/daraja-payments:latest
+    depends_on:
+      mysql: {condition: service_healthy}
+      kafka: {condition: service_started}
+    ports:
+      - "8080:8080"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: daraja
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      DARAJA_CONSUMER_KEY: ${DARAJA_CONSUMER_KEY}
+      DARAJA_CONSUMER_SECRET: ${DARAJA_CONSUMER_SECRET}
+      DARAJA_PASSKEY: ${DARAJA_PASSKEY}
+      DARAJA_CALLBACK_BASE_URL: ${DARAJA_CALLBACK_BASE_URL}
+      API_JWT_SECRET: ${API_JWT_SECRET}
+      API_CLIENT_ID: demo-client
+      API_CLIENT_SECRET: ${API_CLIENT_SECRET}
+      JAVA_TOOL_OPTIONS: "-Xmx384m"
+    deploy:
+      resources:
+        limits: {memory: 640M}
